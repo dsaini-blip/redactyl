@@ -1,0 +1,100 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "redactyl"
+version = "0.1.0"
+description = "Python library and CLI for detecting and redacting sensitive information in text, files, and directories."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "Dakshil Saini" }
+]
+keywords = [
+  "security",
+  "redaction",
+  "pii",
+  "secrets",
+  "detection",
+  "cli",
+  "text-processing",
+  "privacy"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Text Processing",
+  "Environment :: Console"
+]
+dependencies = [
+  "typer>=0.12.3",
+  "rich>=13.7.0",
+  "pydantic>=2.7.0",
+  "pyyaml>=6.0.1"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+  "pytest-cov>=5.0.0",
+  "ruff>=0.5.0",
+  "build>=1.2.1",
+  "twine>=5.1.1"
+]
+
+[project.scripts]
+redactyl = "redactyl.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/redactyl"
+Repository = "https://github.com/yourusername/redactyl"
+Issues = "https://github.com/yourusername/redactyl/issues"
+Documentation = "https://github.com/yourusername/redactyl#readme"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/redactyl"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/redactyl",
+  "tests",
+  "README.md",
+  "pyproject.toml"
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+  "UP",
+  "B",
+  "SIM"
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
