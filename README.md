@@ -22,7 +22,7 @@ It uses a modular, confidence-based detection engine capable of identifying API 
 To install Redactyl locally, clone the repository and install it using `pip`.
 
 ```bash
-git clone https://github.com/yourusername/redactyl.git
+git clone https://github.com/dsaini-blip/redactyl
 cd redactyl
 pip install -e .
 ```
