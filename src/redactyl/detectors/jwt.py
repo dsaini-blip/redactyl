@@ -3,7 +3,7 @@ import re
 from redactyl.detectors.base import BaseDetector
 from redactyl.models import Finding
 
-JWT_RE = re.compile(r"\b[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\b")
+JWT_RE = re.compile(r"\bey[A-Za-z0-9\-_]*\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\b")
 
 
 class JWTDetector(BaseDetector):

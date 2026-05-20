@@ -1,8 +1,8 @@
 import re
-from redactyl.detectors.base import Detector
+from redactyl.detectors.base import BaseDetector
 from redactyl.models import Finding
 
-class CustomKeywordDetector(Detector):
+class CustomKeywordDetector(BaseDetector):
     name = "custom_keyword"
 
     def __init__(self, keywords: list[str]):
