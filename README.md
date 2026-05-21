@@ -80,18 +80,18 @@ You don't have to memorize a bunch of different functions! The `redact()` functi
 ```python
 from redactyl.api import redact
 
-# 1. Pass a raw string
-redacted_text, findings = redact("My email is admin@foo.bar")
+# 1. Pass a raw string (Optionally with a config file!)
+redacted_text, findings = redact("My email is admin@foo.bar", config_path="./redactyl.yml")
 
 # 2. Pass a JSON payload (dict/list)
-sanitized_json, findings = redact({"email": "admin@foo.bar"})
+sanitized_json, findings = redact({"email": "admin@foo.bar"}, config_path="./redactyl.yml")
 
 # 3. Pass a file path
 # This writes to "logs.redacted.json" automatically!
-redacted_file, report_file, findings = redact("./logs.json")
+redacted_file, report_file, findings = redact("./logs.json", config_path="./redactyl.yml")
 
 # 4. Pass a directory path
-processed_files, all_findings = redact("./raw_data/", output_dir="./clean_data/")
+processed_files, all_findings = redact("./raw_data/", output_dir="./clean_data/", config_path="./redactyl.yml")
 ```
 
 ### Advanced Usage (Specific Functions)
@@ -103,7 +103,7 @@ Detect sensitive information and get a structured list of findings.
 ```python
 from redactyl.api import scan_text
 
-text = "Please contact me at admin@internal.corp.com or use API Key: sk_live_1234567890abcdef12345678"
+text = "Please contact me at admin@internal.corp.com or use API Key: my_fake_api_key_12345678"
 findings = scan_text(text)
 
 for finding in findings:
@@ -195,7 +195,6 @@ business_units:
 # Any custom strings, names, or secret words you want strictly redacted
 custom_keywords:
   - "Project Pegasus"
-  - "Dakshil Saini"
   - "SuperSecretPassword123!"
 
 # Disable specific detectors if they are causing false positives
