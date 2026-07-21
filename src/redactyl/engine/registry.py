@@ -14,6 +14,7 @@ from redactyl.detectors.password import PasswordDetector
 from redactyl.detectors.phone import PhoneDetector
 from redactyl.detectors.private_key import PrivateKeyDetector
 from redactyl.detectors.request_id import RequestIDDetector
+from redactyl.detectors.secret_key import SecretKeyDetector
 from redactyl.detectors.session_cookie import SessionCookieDetector
 from redactyl.detectors.ssn import SSNDetector
 from redactyl.detectors.url import URLDetector
@@ -30,6 +31,7 @@ def build_detectors(config):
         BearerTokenDetector(),
         ApiKeyDetector(),
         AWSDetector(),
+        SecretKeyDetector(),
         PrivateKeyDetector(),
         SessionCookieDetector(),
         PasswordDetector(),

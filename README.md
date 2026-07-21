@@ -6,8 +6,8 @@ It uses a modular, confidence-based detection engine capable of identifying API 
 
 ## ✨ Features
 
-- **Extensive Detection Capabilities**: Comes with 18+ built-in detectors including:
-  - Credentials (API Keys, AWS Keys, Passwords, JWTs, Bearer Tokens)
+- **Extensive Detection Capabilities**: Comes with built-in detectors including:
+  - Credentials (API Keys, Access Keys, Secret Keys, Secrets, AWS Keys, Passwords, JWTs, Bearer Tokens)
   - PII (Emails, Phone Numbers, SSNs, Credit Cards)
   - Infrastructure (IP Addresses, Domains, DB Connection Strings)
 - **High Accuracy**: Uses strict patterns and validation (like Luhn algorithms for credit cards) to minimize false positives.

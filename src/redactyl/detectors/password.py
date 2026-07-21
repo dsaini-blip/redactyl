@@ -4,7 +4,7 @@ from redactyl.detectors.base import BaseDetector
 from redactyl.models import Finding
 
 PASSWORD_RE = re.compile(
-    r"(?i)\b(?:password|passwd|pwd|db_password|secret)\b\s*[:=]\s*[\"']?([^\s\"']{4,})[\"']?"
+    r"(?i)\b(?:password|passwd|pwd|db_password)\b\s*[:=]\s*[\"']?([^\s\"']{4,})[\"']?"
 )
 
 

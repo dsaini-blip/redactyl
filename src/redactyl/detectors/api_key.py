@@ -10,7 +10,7 @@ API_KEY_PATTERNS = [
     re.compile(r"\bghp_[A-Za-z0-9]{36}\b"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\bASIA[0-9A-Z]{16}\b"),
-    re.compile(r"(?i)\b(?:api[_\s-]?key|apikey|access[_-]?key)\b\s*[:=]\s*[\"']?([A-Za-z0-9_\-]{16,})[\"']?"),
+    re.compile(r"(?i)\b(?:api[_\s-]?key|apikey)\b\s*[:=]\s*[\"']?([A-Za-z0-9_\-]{16,})[\"']?"),
 ]
 
 
