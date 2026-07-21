@@ -7,7 +7,7 @@ DEFAULT_CONFIG = {
     "business_units": [],
     "enabled_detectors": [],
     "disabled_detectors": [],
-    "include_extensions": [".txt", ".log", ".env", ".cfg", ".ini", ".md", ".json"],
+    "include_extensions": None,
     "exclude_dirs": [".git", ".venv", "node_modules", "__pycache__"],
     "redaction_style": "block",
 }

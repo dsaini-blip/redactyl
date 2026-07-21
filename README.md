@@ -35,12 +35,16 @@ Redactyl provides an intuitive CLI built with Typer. You can use it to scan indi
 
 ### Basic Usage
 
-**Detect Only (File)**
-Scan a file and generate a JSON report of the findings without modifying the original text.
+**Detect Only (File or Directory)**
+Scan a single file or an entire multi-level nested directory to generate JSON findings reports without modifying original files.
 ```bash
+# Scan a single file
 redactyl path/to/file.txt --detect-only
+
+# Scan a multi-level directory recursively
+redactyl path/to/logs_directory/ --detect-only
 ```
-*Outputs: `path/to/file.findings.json`*
+*Outputs: `path/to/file.findings.json` or `logs_directory.findings.json`*
 
 **Redact (File or JSON)**
 Scan a text or `.json` file, replace sensitive data with `[REDACTED]`, and generate a report. If a `.json` file is passed, Redactyl will natively parse and safely sanitize the JSON without breaking its structure.
@@ -51,16 +55,22 @@ redactyl path/to/file.json --redact
 * `path/to/file.redacted.json` (Valid JSON with redacted strings)
 * `path/to/file.findings.json` (Report with JSON paths)
 
-**Redact an Entire Directory**
-Scan all text files inside a directory. 
+**Redact an Entire Directory (Multi-Level)**
+Scan **all file types** inside a directory and across all nested subdirectories (folders inside folders at any depth). 
 ```bash
 redactyl path/to/logs_directory/ --redact
 ```
 
 **Output to a Specific Location**
-Use the `--out` flag to place the redacted files and reports into a separate folder, maintaining the original directory structure.
+Use the `--out` flag to place the redacted files and reports into a separate folder, maintaining the original multi-level directory structure.
 ```bash
 redactyl path/to/input_dir/ --redact --out path/to/output_dir/
+```
+
+**Detect Only with Directory Output**
+Use `--detect-only` with `--out` or `--json-out` on multi-level nested directories:
+```bash
+redactyl path/to/input_dir/ --detect-only --out path/to/reports_dir/ --json-out summary.json
 ```
 
 **Use a Configuration File**
@@ -90,8 +100,11 @@ sanitized_json, findings = redact({"email": "admin@foo.bar"}, config_path="./red
 # This writes to "logs.redacted.json" automatically!
 redacted_file, report_file, findings = redact("./logs.json", config_path="./redactyl.yml")
 
-# 4. Pass a directory path
+# 4. Pass a directory path (Multi-level redaction across all file types)
 processed_files, all_findings = redact("./raw_data/", output_dir="./clean_data/", config_path="./redactyl.yml")
+
+# 5. Pass a directory path with detect_only=True
+processed_files, all_findings = redact("./raw_data/", detect_only=True, json_output_path="./scan_summary.json")
 ```
 
 ### Advanced Usage (Specific Functions)
@@ -161,7 +174,7 @@ print(f"Redacted file saved to: {redacted_file}")
 print(f"Found {len(findings)} sensitive items.")
 ```
 
-**Redact an entire directory**
+**Redact an entire directory (Multi-level, all file types)**
 ```python
 from redactyl.api import redact_directory_with_report
 
@@ -171,6 +184,19 @@ processed_files, all_findings = redact_directory_with_report(
 )
 
 print(f"Cleaned {len(processed_files)} files and found {len(all_findings)} sensitive items.")
+```
+
+**Detect-only on a directory programmatically**
+```python
+from redactyl.api import detect_directory_with_report
+
+processed_files, all_findings = detect_directory_with_report(
+    input_dir="./raw_logs",
+    output_dir="./detection_reports",
+    json_output_path="./aggregate_findings.json"
+)
+
+print(f"Scanned {len(processed_files)} files across all nested subdirectories.")
 ```
 
 ---

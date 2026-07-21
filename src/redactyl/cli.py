@@ -38,8 +38,23 @@ def main(
 
     if path.is_dir():
         if detect_only and not redact:
-            print("[yellow]Directory detection-only mode is not yet fully supported. Please use --redact for directories.[/yellow]")
-            raise typer.Exit(code=1)
+            print(f"Scanning directory (detect-only): {path}")
+            json_target_path = (
+                json_out
+                if json_out
+                else (out / "findings.json" if out else path.with_name(f"{path.name}.findings.json"))
+            )
+            processed_files, all_findings = redact_directory_with_report(
+                input_dir=str(path),
+                output_dir=str(out) if out else None,
+                json_output_path=str(json_target_path),
+                config_path=config_str,
+                detect_only=True,
+            )
+            print(f"[green]Successfully scanned {len(processed_files)} files across nested directories.[/green]")
+            print(f"Total findings across all files: {len(all_findings)}")
+            print(f"JSON report written to: {json_target_path}")
+            return
 
         print(f"Scanning directory: {path}")
         processed_files, all_findings = redact_directory_with_report(

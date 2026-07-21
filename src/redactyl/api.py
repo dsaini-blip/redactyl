@@ -278,16 +278,94 @@ def redact_file_with_report(
     return written_redacted_file, written_json_file, findings
 
 
-def redact_directory_with_report(
+def detect_directory_with_report(
     input_dir: str,
     output_dir: str | None = None,
+    json_output_path: str | None = None,
     config_path: str | None = None,
-    replacement: str = "[REDACTED]",
 ):
     input_path = Path(input_dir)
     config = load_config(config_path)
-    
-    include_extensions = config.get("include_extensions", [".txt", ".log", ".env", ".cfg", ".ini", ".md", ".json"])
+
+    include_extensions = config.get("include_extensions")
+    exclude_dirs = config.get("exclude_dirs", [".git", ".venv", "node_modules", "__pycache__"])
+
+    all_findings = []
+    processed_files = []
+
+    out_dir_path = Path(output_dir) if output_dir else None
+    if out_dir_path:
+        out_dir_path.mkdir(parents=True, exist_ok=True)
+
+    for file_path in iter_text_files(input_path, include_extensions, exclude_dirs):
+        # Scan file for findings
+        if file_path.suffix.lower() == ".json":
+            try:
+                payload = json.loads(file_path.read_text(encoding="utf-8"))
+                _, findings = sanitize_json_payload(payload, config_path=config_path)
+            except Exception:
+                text = file_path.read_text(encoding="utf-8", errors="ignore")
+                findings = scan_text(text, config_path=config_path)
+        else:
+            text = file_path.read_text(encoding="utf-8", errors="ignore")
+            findings = scan_text(text, config_path=config_path)
+
+        json_file_path = None
+        if out_dir_path:
+            rel_path = file_path.relative_to(input_path)
+            out_file_path = out_dir_path / rel_path
+            out_file_path.parent.mkdir(parents=True, exist_ok=True)
+            json_file_path = out_file_path.with_name(f"{out_file_path.stem}.findings.json")
+
+            write_findings_json(
+                findings=findings,
+                source_file=str(file_path),
+                json_output_path=str(json_file_path),
+            )
+
+        findings_dicts = [_finding_to_dict(f) for f in findings]
+        all_findings.extend(findings)
+        processed_files.append({
+            "original": str(file_path),
+            "report": str(json_file_path) if json_file_path else None,
+            "findings_count": len(findings),
+            "findings": findings_dicts,
+        })
+
+    if json_output_path:
+        json_path = Path(json_output_path)
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        aggregate_payload = {
+            "source_directory": str(input_path),
+            "total_files_scanned": len(processed_files),
+            "total_findings": len(all_findings),
+            "files": processed_files,
+        }
+        json_path.write_text(json.dumps(aggregate_payload, indent=2), encoding="utf-8")
+
+    return processed_files, all_findings
+
+
+def redact_directory_with_report(
+    input_dir: str,
+    output_dir: str | None = None,
+    json_output_path: str | None = None,
+    config_path: str | None = None,
+    replacement: str = "[REDACTED]",
+    detect_only: bool = False,
+):
+    if detect_only:
+        return detect_directory_with_report(
+            input_dir=input_dir,
+            output_dir=output_dir,
+            json_output_path=json_output_path,
+            config_path=config_path,
+        )
+
+    input_path = Path(input_dir)
+    config = load_config(config_path)
+
+    include_extensions = config.get("include_extensions")
     exclude_dirs = config.get("exclude_dirs", [".git", ".venv", "node_modules", "__pycache__"])
 
     all_findings = []
@@ -300,7 +378,6 @@ def redact_directory_with_report(
     for file_path in iter_text_files(input_path, include_extensions, exclude_dirs):
         if out_dir_path:
             rel_path = file_path.relative_to(input_path)
-            # Create a corresponding output path
             out_file_path = out_dir_path / rel_path
             out_file_path.parent.mkdir(parents=True, exist_ok=True)
             
@@ -308,7 +385,6 @@ def redact_directory_with_report(
             redacted_file_path = out_file_path.with_name(f"{out_file_path.stem}.redacted{suffix}")
             json_file_path = out_file_path.with_name(f"{out_file_path.stem}.findings.json")
         else:
-            # Output in place, similar to file logic
             redacted_file_path = None
             json_file_path = None
 
@@ -335,19 +411,22 @@ def redact(
     data,
     config_path: str | None = None,
     replacement: str = "[REDACTED]",
+    detect_only: bool = False,
     **kwargs
 ):
     """
     Universal dispatcher for Redactyl.
-    Accepts a string, dictionary, list, file path, or directory path and routes it to the correct redaction function.
+    Accepts a string, dictionary, list, file path, or directory path and routes it to the correct redaction or detection function.
     """
     if isinstance(data, (dict, list)):
+        if detect_only:
+            sanitized, findings = sanitize_json_payload(data, config_path=config_path, replacement=replacement)
+            return findings
         return sanitize_json_payload(data, config_path=config_path, replacement=replacement)
         
     elif isinstance(data, (str, Path)):
         path_obj = Path(data)
         
-        # Check if the string is actually a valid path on the system
         try:
             is_valid_path = path_obj.exists()
         except OSError:
@@ -359,9 +438,22 @@ def redact(
                     str(path_obj), 
                     config_path=config_path, 
                     replacement=replacement,
+                    detect_only=detect_only,
                     **kwargs
                 )
             else:
+                if detect_only:
+                    if path_obj.suffix.lower() == ".json":
+                        try:
+                            payload = json.loads(path_obj.read_text(encoding="utf-8"))
+                            _, findings = sanitize_json_payload(payload, config_path=config_path)
+                            return findings
+                        except Exception:
+                            text = path_obj.read_text(encoding="utf-8", errors="ignore")
+                            return scan_text(text, config_path=config_path)
+                    text = path_obj.read_text(encoding="utf-8", errors="ignore")
+                    return scan_text(text, config_path=config_path)
+
                 return redact_file_with_report(
                     str(path_obj), 
                     config_path=config_path, 
@@ -369,8 +461,9 @@ def redact(
                     **kwargs
                 )
                 
-        # If it's a string but doesn't exist as a path, treat as raw text
         if isinstance(data, str):
+            if detect_only:
+                return scan_text(data, config_path=config_path)
             return redact_text(data, config_path=config_path, replacement=replacement)
             
     raise ValueError(f"Unsupported data type for redactyl.redact(): {type(data)}")
