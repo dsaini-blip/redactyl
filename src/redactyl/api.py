@@ -202,12 +202,27 @@ def prepare_safe_prompt_payload(
     }
 
 
+def _categorize_findings(findings_dicts: list[dict]) -> dict[str, list[dict]]:
+    categories: dict[str, list[dict]] = {}
+    for f in findings_dicts:
+        ftype = f.get("type", "UNKNOWN")
+        categories.setdefault(ftype, []).append(f)
+    return categories
+
+
 def write_findings_json(findings, source_file: str, json_output_path: str):
     output_path = Path(json_output_path)
+    file_obj = Path(source_file)
+    findings_dicts = [_finding_to_dict(f) for f in findings]
+    categories = _categorize_findings(findings_dicts)
+
     payload = {
-        "source_file": source_file,
+        "file_name": file_obj.name,
+        "file_path": str(file_obj.resolve()),
+        "source_file": str(file_obj),
         "total_findings": len(findings),
-        "findings": [_finding_to_dict(f) for f in findings],
+        "categories": categories,
+        "findings": findings_dicts,
     }
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return output_path
@@ -324,11 +339,15 @@ def detect_directory_with_report(
             )
 
         findings_dicts = [_finding_to_dict(f) for f in findings]
+        categories = _categorize_findings(findings_dicts)
         all_findings.extend(findings)
         processed_files.append({
+            "file_name": file_path.name,
+            "file_path": str(file_path.resolve()),
             "original": str(file_path),
             "report": str(json_file_path) if json_file_path else None,
             "findings_count": len(findings),
+            "categories": categories,
             "findings": findings_dicts,
         })
 
@@ -336,7 +355,7 @@ def detect_directory_with_report(
         json_path = Path(json_output_path)
         json_path.parent.mkdir(parents=True, exist_ok=True)
         aggregate_payload = {
-            "source_directory": str(input_path),
+            "source_directory": str(input_path.resolve()),
             "total_files_scanned": len(processed_files),
             "total_findings": len(all_findings),
             "files": processed_files,
@@ -396,13 +415,30 @@ def redact_directory_with_report(
             replacement=replacement,
         )
 
+        findings_dicts = [_finding_to_dict(f) for f in findings]
+        categories = _categorize_findings(findings_dicts)
         all_findings.extend(findings)
         processed_files.append({
+            "file_name": file_path.name,
+            "file_path": str(file_path.resolve()),
             "original": str(file_path),
             "redacted": str(redacted_file),
             "report": str(json_file),
-            "findings_count": len(findings)
+            "findings_count": len(findings),
+            "categories": categories,
+            "findings": findings_dicts,
         })
+
+    if json_output_path:
+        json_path = Path(json_output_path)
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        aggregate_payload = {
+            "source_directory": str(input_path.resolve()),
+            "total_files_scanned": len(processed_files),
+            "total_findings": len(all_findings),
+            "files": processed_files,
+        }
+        json_path.write_text(json.dumps(aggregate_payload, indent=2), encoding="utf-8")
 
     return processed_files, all_findings
 

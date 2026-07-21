@@ -77,10 +77,20 @@ def main(
                 json_out if json_out else path.with_name(f"{path.stem}.findings.json")
             )
 
+            file_obj = Path(path)
+            findings_dicts = [finding_to_dict(f) for f in findings]
+            categories = {}
+            for f in findings_dicts:
+                ftype = f.get("type", "UNKNOWN")
+                categories.setdefault(ftype, []).append(f)
+
             payload = {
-                "source_file": str(path),
+                "file_name": file_obj.name,
+                "file_path": str(file_obj.resolve()),
+                "source_file": str(file_obj),
                 "total_findings": len(findings),
-                "findings": [finding_to_dict(f) for f in findings],
+                "categories": categories,
+                "findings": findings_dicts,
             }
 
             json_output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

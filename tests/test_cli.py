@@ -17,6 +17,10 @@ def test_cli_file_detect_only(tmp_path):
     assert json_file.exists()
     
     data = json.loads(json_file.read_text())
+    assert data["file_name"] == "test.txt"
+    assert "file_path" in data
+    assert "categories" in data
+    assert "EMAIL" in data["categories"]
     assert data["total_findings"] == 2
     values = [f["value"] for f in data["findings"]]
     assert "admin@foo.bar" in values
