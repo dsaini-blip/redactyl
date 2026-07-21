@@ -34,6 +34,25 @@ EXCLUDED_SUFFIXES = {
     "ps1",
     "xml",
     "sql",
+    "out",
+    "result",
+    "workspace",
+    "class",
+    "properties",
+    "conf",
+    "cfg",
+    "bak",
+    "tmp",
+    "temp",
+    "dat",
+    "bin",
+    "exe",
+    "dll",
+    "so",
+    "dylib",
+    "jar",
+    "war",
+    "ear",
 }
 
 # Standard public gTLDs, ccTLDs, and common internal domain TLDs
@@ -54,7 +73,7 @@ VALID_TLDS = {
     "academy", "accountant", "accountants", "active", "actor", "adult", "africa",
     "apartments", "art", "associates", "attorney", "auction", "audio", "auto",
     "autos", "band", "bank", "bar", "bargains", "bayern", "beer", "berlin", "best",
-    "bid", "bike", "bingo", "bio", "black", "blog", "blue", "boutique", "build",
+    "bid", "bike", "bingo", "bio", "black", "blog", "blue", "boutique",
     "builders", "business", "buzz", "cab", "cafe", "cam", "camera", "camp", "capital",
     "cards", "care", "careers", "cars", "casa", "cash", "casino", "catering",
     "charity", "chat", "cheap", "church", "city", "claims", "cleaning", "click",
@@ -90,7 +109,29 @@ VALID_TLDS = {
     "internal", "corp", "local", "lan", "home", "private", "test", "example", "invalid", "localhost"
 }
 
-CODE_IMPORT_PREFIX_RE = re.compile(r"\b(import|package|from|using|#include|#import)\s+$")
+CODE_IMPORT_PREFIX_RE = re.compile(
+    r"\b(import|package|from|using|#include|#import)\b", re.IGNORECASE
+)
+
+CODE_ROOT_PACKAGES = {
+    "java.",
+    "javax.",
+    "groovy.",
+    "kotlin.",
+    "scala.",
+    "android.",
+    "sun.",
+    "com.sun.",
+    "org.apache.",
+    "org.springframework.",
+}
+
+
+def _is_mixed_case(s: str) -> bool:
+    """Returns True if string contains camelCase or PascalCase letters."""
+    has_upper = any(c.isupper() for c in s)
+    has_lower = any(c.islower() for c in s)
+    return has_upper and has_lower
 
 
 class DomainDetector(BaseDetector):
@@ -105,11 +146,11 @@ class DomainDetector(BaseDetector):
 
         for match in DOMAIN_RE.finditer(text):
             val = match.group(0)
+            val_lower = val.lower()
             start_pos = match.start()
             end_pos = match.end()
 
             # 1. Check surrounding context for code invocation or import statements
-            # Check if immediately followed by parenthesis `(` (method call)
             after_text = text[end_pos:]
             if after_text.startswith("(") or re.match(r"^\s*\(", after_text):
                 continue
@@ -118,11 +159,16 @@ class DomainDetector(BaseDetector):
             if start_pos > 0 and text[start_pos - 1] in "._$":
                 continue
 
-            # Check preceding line prefix for code import/package statements
+            # Check preceding line content for code import/package statements
             line_start = text.rfind("\n", 0, start_pos) + 1
-            prefix_on_line = text[line_start:start_pos].strip()
+            prefix_on_line = text[line_start:start_pos]
             if CODE_IMPORT_PREFIX_RE.search(prefix_on_line):
                 continue
+
+            # Check for standard code root package prefixes (e.g. java.text..., groovy.io...)
+            if any(val_lower.startswith(pkg) for pkg in CODE_ROOT_PACKAGES):
+                if val_lower not in self.internal_domains:
+                    continue
 
             # 2. Check TLD validity and casing rules
             segments = val.split(".")
@@ -136,21 +182,24 @@ class DomainDetector(BaseDetector):
             is_valid_tld = (
                 tld_lower in VALID_TLDS
                 or tld_lower in self.internal_domains
-                or val.lower() in self.internal_domains
+                or val_lower in self.internal_domains
             )
             if not is_valid_tld:
                 continue
 
-            # Reject TLD casing that signals code class names (PascalCase/camelCase) or uppercase constants
-            # e.g., FileType, WORKSPACE, GetName when not matching a full domain override
-            if tld != tld_lower and val.lower() not in self.internal_domains:
-                # If TLD is mixed case (e.g., FileType) or UPPERCASE while prefix is lowercase/camelCase (e.g., env.WORKSPACE)
-                if not tld.isupper() or not all(s.isupper() for s in segments):
+            # 3. Reject code identifiers with camelCase / PascalCase segments or uppercase env variables
+            # Real domain names in text are lowercase (e.g. google.com) or ALL-CAPS (e.g. GOOGLE.COM).
+            # If any segment has mixed case (e.g. currentBuild, SimpleDateFormat, FileType, getName), reject it unless internal.
+            if val_lower not in self.internal_domains:
+                if any(_is_mixed_case(seg) for seg in segments):
+                    continue
+                # If TLD is uppercase while prefix is not all uppercase (e.g., env.WORKSPACE)
+                if tld.isupper() and not all(seg.isupper() for seg in segments):
                     continue
 
             # Determine whether domain is internal or public
             is_internal = (
-                val.lower() in self.internal_domains
+                val_lower in self.internal_domains
                 or tld_lower in self.internal_domains
                 or tld_lower in {"internal", "corp", "local", "lan", "home", "private"}
             )

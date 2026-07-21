@@ -26,10 +26,13 @@ def test_domain_detector_false_positives():
     code_text = (
         "currentBuild.result = 'SUCCESS'\n"
         "echo env.WORKSPACE\n"
+        "plan.out\n"
         "dirs.getName\n"
         "dirs.getName()\n"
         "groovy.io.FileType\n"
         "import groovy.io.FileType\n"
+        "java.text.SimpleDateFormat\n"
+        "import java.text.SimpleDateFormat;\n"
         "import java.util.List;\n"
         "package com.example.service;\n"
         "regionList.add\n"
@@ -40,6 +43,7 @@ def test_domain_detector_false_positives():
     )
     findings = detector.detect(code_text)
     assert len(findings) == 0, f"Expected 0 findings but got: {[f.value for f in findings]}"
+
 
 
 def test_domain_detector_valid_domains():
